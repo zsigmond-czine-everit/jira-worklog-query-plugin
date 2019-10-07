@@ -30,7 +30,7 @@
 
   <groupId>org.everit.jira</groupId>
   <artifactId>org.everit.jira.worklog.query.plugin</artifactId>
-  <version>3.0.2</version>
+  <version>3.0.3</version>
 
   <packaging>bundle</packaging>
 
@@ -85,11 +85,17 @@
           <instructions>
             <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
             <Import-Package>
+              !net.sf.cglib.proxy,
+              javax.annotation;resolution:=optional,
+              sun.misc.*;resolution:=optional,
               com.atlassian.jira.rest.v2.*;version="${jira.version}",
               com.atlassian.jira.rest.api.*;version="${jira.version}",
               *
             </Import-Package>
             <Export-Package />
+            <Embed-Dependency>*;scope=compile;inline=false,</Embed-Dependency>
+            <Embed-Directory>embedded</Embed-Directory>
+            <Embed-Transitive>true</Embed-Transitive>
           </instructions>
         </configuration>
       </plugin>
@@ -115,12 +121,6 @@
           </execution>
         </executions>
         <configuration>
-          <pluginDependencies>
-            <pluginDependency>
-              <groupId>org.everit.jira</groupId>
-              <artifactId>jira-querydsl-support</artifactId>
-            </pluginDependency>
-          </pluginDependencies>
           <instructions>
             <_manifest>${project.build.outputdirectory}/META-INF/MANIFEST.MF</_manifest>
           </instructions>
@@ -165,6 +165,14 @@
           <artifactId>jta</artifactId>
           <groupId>jta</groupId>
         </exclusion>
+        <exclusion>
+          <groupId>com.querydsl</groupId>
+          <artifactId>querydsl-sql</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -173,18 +181,24 @@
       <version>${jira.version}</version>
       <scope>provided</scope>
     </dependency>
-
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.7.25</version>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>org.everit.jira</groupId>
       <artifactId>jira-querydsl-support</artifactId>
-      <version>2.0.0</version>
-      <scope>provided</scope>
+      <version>2.0.2-SNAPSHOT</version>
+      <scope>compile</scope>
     </dependency>
 
     <dependency>
       <groupId>com.sun.jersey</groupId>
       <artifactId>jersey-client</artifactId>
       <version>1.12</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>

@@ -15,9 +15,11 @@
  */
 package org.everit.jira.worklog.query.plugin.query;
 
+import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Set;
@@ -28,8 +30,8 @@ import org.everit.jira.querydsl.schema.QWorklog;
 import org.everit.jira.querydsl.support.QuerydslCallable;
 import org.everit.jira.worklog.query.plugin.IssueBeanWithTimespent;
 
+import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Expression;
-import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.SimpleExpression;
 import com.querydsl.core.types.dsl.StringExpression;
@@ -90,7 +92,7 @@ public class FindWorklogsByIssuesQuery implements QuerydslCallable<List<IssueBea
   @Override
   public List<IssueBeanWithTimespent> call(final Connection connection,
       final Configuration configuration)
-          throws SQLException {
+      throws SQLException {
     QWorklog worklog = new QWorklog("worklog");
     QJiraissue issue = new QJiraissue("issue");
     QProject project = new QProject("project");
@@ -104,12 +106,11 @@ public class FindWorklogsByIssuesQuery implements QuerydslCallable<List<IssueBea
     StringExpression jiraBaseUrlStringExpression = StringExpressions.ltrim(jiraBaseUrlExpression);
 
     StringExpression concat = jiraBaseUrlStringExpression.concat(issue.id.stringValue());
-    return new SQLQuery<List<IssueBeanWithTimespent>>(connection, configuration)
-        .select(Projections.constructor(IssueBeanWithTimespent.class,
-            issue.id,
+    List<Tuple> fetch = new SQLQuery<List<IssueBeanWithTimespent>>(connection, configuration)
+        .select(issue.id,
             issueKey,
             concat,
-            timeworked))
+            timeworked)
         .from(worklog)
         .join(issue).on(issue.id.eq(worklog.issueid))
         .join(project).on(project.id.eq(issue.project))
@@ -122,6 +123,20 @@ public class FindWorklogsByIssuesQuery implements QuerydslCallable<List<IssueBea
         .limit(limit)
         .orderBy(issue.id.asc())
         .fetch();
+
+    ArrayList<IssueBeanWithTimespent> result = new ArrayList<>();
+    for (Tuple tuple : fetch) {
+      Long id = tuple.get(issue.id);
+      String key = tuple.get(issueKey);
+      String selfUri = tuple.get(concat);
+      Long timespent = tuple.get(timeworked);
+      try {
+        result.add(new IssueBeanWithTimespent(id, key, selfUri, timespent));
+      } catch (URISyntaxException e) {
+        // do nothing
+      }
+    }
+    return result;
   }
 
 }
